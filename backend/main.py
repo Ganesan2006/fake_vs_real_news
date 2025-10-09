@@ -1,32 +1,58 @@
+# ai_learning_platform/backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.routers import auth, roadmap
-from backend.app.database.database import init_db
-from dotenv import load_dotenv
+from backend.app.routers import auth, roadmap, progress, chat, analytics
+from backend.app.database.database_config import init_database
+from backend.config.settings import settings
+from backend.config.logging_config import get_logger
 
-load_dotenv()
+# Get logger for main application
+logger = get_logger(__name__)
 
-app = FastAPI(title="AI Learning Platform API")
+# Initialize FastAPI app
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="API for the AI-Powered Personalized Learning Platform",
+    debug=settings.DEBUG
+)
 
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize database
-init_db()
+# Event handler for startup
+@app.on_event("startup")
+def on_startup():
+    """Run on application startup."""
+    logger.info("🚀 Starting up the application...")
+    init_database()
+    logger.info("✓ Database initialization complete.")
 
-# Include routers
-app.include_router(auth.router)
-app.include_router(roadmap.router)
+# Include API routers
+app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["Authentication"])
+app.include_router(roadmap.router, prefix=settings.API_PREFIX, tags=["Roadmap"])
+app.include_router(progress.router, prefix=settings.API_PREFIX, tags=["Progress"])
+app.include_router(chat.router, prefix=settings.API_PREFIX, tags=["Chat"])
+app.include_router(analytics.router, prefix=settings.API_PREFIX, tags=["Analytics"])
 
-@app.get("/")
-def root():
-    return {"message": "AI Learning Platform API"}
+@app.get("/", tags=["Root"])
+def read_root():
+    """Root endpoint to check API status."""
+    return {"message": f"Welcome to {settings.APP_NAME} API v{settings.APP_VERSION}"}
 
+# Main entry point for uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info(f"Starting server on {settings.API_HOST}:{settings.API_PORT}")
+    uvicorn.run(
+        "main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=settings.DEBUG
+    )
