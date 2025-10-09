@@ -1,38 +1,52 @@
+# ai_learning_platform/backend/app/routers/auth.py
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.app.models import schemas, database_models
-from backend.app.database.database import get_db
-from backend.app.core.security import get_password_hash, verify_password, create_access_token
+from backend.app.database.database_config import get_db
+from backend.app.core.security import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_current_active_user,
+)
 
-router = APIRouter(prefix="/api/auth", tags=["authentication"])
+router = APIRouter()
 
-@router.post("/register", response_model=schemas.User)
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@router.post("/auth/register", response_model=schemas.UserProfile, status_code=status.HTTP_201_CREATED)
+def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Create a new user."""
     db_user = db.query(database_models.User).filter(database_models.User.email == user.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    db_user = database_models.User(
+    new_user = database_models.User(
         email=user.email,
         name=user.name,
         password_hash=hashed_password,
-        background=user.background,
-        current_role=user.current_role,
-        target_role=user.target_role,
-        years_experience=user.years_experience,
-        skills=user.skills
+        **user.model_dump(exclude={"password", "email", "name"})
     )
-    db.add(db_user)
+    db.add(new_user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(new_user)
+    return new_user
 
-@router.post("/login", response_model=schemas.Token)
-def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(database_models.User).filter(database_models.User.email == user_credentials.email).first()
-    if not user or not verify_password(user_credentials.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+@router.post("/auth/login", response_model=schemas.Token)
+def login_for_access_token(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Login user and return access token."""
+    user = db.query(database_models.User).filter(database_models.User.email == form_data.email).first()
+    if not user or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
-    access_token = create_access_token(data={"sub": user.email})
+    access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/users/me", response_model=schemas.UserProfile)
+def read_users_me(current_user: database_models.User = Depends(get_current_active_user)):
+    """Get current user's profile."""
+    return current_user
