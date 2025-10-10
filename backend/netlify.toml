@@ -2,7 +2,7 @@
 
 [build]
   # Directory to publish (e.g., your frontend build output)
-  publish = "."
+  publish = "aimentor"
 
 [functions]
   # Directory where your serverless functions are located
