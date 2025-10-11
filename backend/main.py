@@ -1,8 +1,8 @@
 # ai_learning_platform/backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, roadmap, progress, chat, analytics
-from app.database.database_config import init_database
+from routers import auth, roadmap, progress, chat, analytics
+from database.database_config import init_database
 from config.settings import settings
 from config.logging_config import get_logger
 
