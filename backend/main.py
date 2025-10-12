@@ -5,7 +5,26 @@ from routers import auth, roadmap, progress, chat, analytics
 from database.database_config import init_database
 from config.settings import settings
 from config.logging_config import get_logger
+from fastapi import FastAPI
+from database.database_config import engine, Base
+from models import database_models  # Import your models
+from routers import auth, roadmap, progress, chat, analytics
 
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="AI Learning Platform")
+
+# Include routers
+app.include_router(auth.router)
+app.include_router(roadmap.router)
+app.include_router(progress.router)
+app.include_router(chat.router)
+app.include_router(analytics.router)
+
+@app.get("/")
+def read_root():
+    return {"message": "AI Learning Platform API"}
 # Get logger for main application
 logger = get_logger(__name__)
 
