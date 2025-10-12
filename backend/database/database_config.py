@@ -7,32 +7,36 @@ from sqlalchemy.pool import NullPool
 # Get database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Determine if running on Vercel (production) or locally
+# Check if running on Vercel or local
 if DATABASE_URL:
-    # Production: PostgreSQL/Supabase connection
-    # Fix SQLAlchemy dialect if needed
+    # PRODUCTION: Running on Vercel with PostgreSQL/Supabase
+    # Fix dialect name if needed
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
-    # Use NullPool for serverless environments
+    # Use NullPool for serverless (no persistent connections)
     engine = create_engine(
         DATABASE_URL,
         poolclass=NullPool,
         connect_args={"sslmode": "require"}
     )
 else:
-    # Local development: SQLite connection
+    # LOCAL DEVELOPMENT: Use SQLite
+    # ONLY create directory when DATABASE_URL is not set (local dev)
     os.makedirs("data", exist_ok=True)
-    DATABASE_URL = "sqlite:///./data/database.db"
+    
     engine = create_engine(
-        DATABASE_URL,
+        "sqlite:///./data/database.db",
         connect_args={"check_same_thread": False}
     )
 
+# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for models
 Base = declarative_base()
 
-# Dependency for getting database session
+# Dependency for FastAPI routes
 def get_db():
     db = SessionLocal()
     try:
