@@ -1,15 +1,8 @@
 # ai_learning_platform/backend/app/models/schemas.py
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-
-class YourModelWithModelUsed(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
-    
-    model_used: str
-    # ... other fields
 
 # ============== User Schemas ==============
 class UserBase(BaseModel):
@@ -135,8 +128,11 @@ class ChatMessage(BaseModel):
     context: Optional[Dict[str, Any]] = None
 
 class ChatResponse(BaseModel):
+    # ADD THIS LINE to fix the Pydantic warning
+    model_config = ConfigDict(protected_namespaces=())
+    
     response: str
-    model_used: str
+    model_used: str  # This field was causing the warning
     timestamp: datetime
     context: Optional[Dict[str, Any]]
 
