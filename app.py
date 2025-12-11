@@ -98,7 +98,7 @@ st.markdown("""
 def load_resources():
     try:
         model = load_model('fake_vs_real_news_model.keras')
-        with open('label_encoder.pkl', 'rb') as f:
+        with open('tokenizer.pkl', 'rb') as f:
             tokenizer = pickle.load(f)
         return model, tokenizer
     except Exception as e:
@@ -106,7 +106,7 @@ def load_resources():
         return None, None
 
 # Prediction function
-def predict_news(text, model, tokenizer, max_length=500):
+def predict_news(text, model, tokenizer, max_length=700):
     sequence = tokenizer.texts_to_sequences([text])
     padded = pad_sequences(sequence, maxlen=max_length, padding='post')
     prediction = model.predict(padded, verbose=0)[0][0]
