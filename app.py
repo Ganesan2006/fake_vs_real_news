@@ -98,7 +98,7 @@ st.markdown("""
 def load_resources():
     try:
         model = load_model('fake_vs_real_news_model.keras')
-        with open('tokenizer.pkl', 'rb') as f:
+        with open('label_encoder.pkl', 'rb') as f:
             tokenizer = pickle.load(f)
         return model, tokenizer
     except Exception as e:
