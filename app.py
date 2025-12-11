@@ -68,7 +68,7 @@ if model is not None:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                if prediction > 0.5:
+                if prediction < 0.5:
                     st.markdown(f"""
                         <div class="real-news">
                             <p class="result-text">✅ REAL NEWS</p>
