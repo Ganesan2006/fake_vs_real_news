@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-import pickle
+from tensorflow.keras.preprocessing.text import one_hot
 
 # Page configuration
 st.set_page_config(
@@ -11,104 +11,30 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom CSS for colorful design
+# Custom CSS (keep your existing CSS here)
 st.markdown("""
     <style>
-    .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .stButton>button {
-        background: linear-gradient(90deg, #FF6B6B 0%, #FFE66D 100%);
-        color: white;
-        font-size: 20px;
-        font-weight: bold;
-        padding: 15px 30px;
-        border-radius: 25px;
-        border: none;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-    .title {
-        text-align: center;
-        color: white;
-        font-size: 48px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        margin-bottom: 10px;
-    }
-    .subtitle {
-        text-align: center;
-        color: #FFE66D;
-        font-size: 18px;
-        margin-bottom: 30px;
-    }
-    .real-news {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        padding: 30px;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        animation: slideIn 0.5s ease;
-    }
-    .fake-news {
-        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-        padding: 30px;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        animation: slideIn 0.5s ease;
-    }
-    .result-text {
-        color: white;
-        font-size: 36px;
-        font-weight: bold;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
-    .confidence {
-        color: white;
-        font-size: 18px;
-        margin-top: 10px;
-        opacity: 0.9;
-    }
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .stTextArea textarea {
-        border-radius: 15px;
-        border: 3px solid #FFE66D;
-        font-size: 16px;
-    }
+    /* Your existing CSS styles */
     </style>
 """, unsafe_allow_html=True)
 
-# Load model and tokenizer
+# Load model only (no tokenizer needed!)
 @st.cache_resource
 def load_resources():
     try:
         model = load_model('fake_vs_real_news_model.keras')
-        with open('tokenizer.pkl', 'rb') as f:
-            tokenizer = pickle.load(f)
-        return model, tokenizer
+        return model
     except Exception as e:
         st.error(f"Error loading model: {e}")
-        return None, None
+        return None
 
-# Prediction function
-def predict_news(text, model, tokenizer, max_length=700):
-    sequence = tokenizer.texts_to_sequences([text])
-    padded = pad_sequences(sequence, maxlen=max_length, padding='post')
+# Prediction function using one_hot
+def predict_news(text, model, vocab_size=10000, max_length=500):
+    # Encode text using one_hot (same as training)
+    encoded = one_hot(str(text), vocab_size)
+    # Pad sequence
+    padded = pad_sequences([encoded], maxlen=max_length, padding='post')
+    # Predict
     prediction = model.predict(padded, verbose=0)[0][0]
     return prediction
 
@@ -117,9 +43,9 @@ st.markdown('<p class="title">📰 Fake News Detector</p>', unsafe_allow_html=Tr
 st.markdown('<p class="subtitle">🔍 Verify the authenticity of news articles using AI</p>', unsafe_allow_html=True)
 
 # Load model
-model, tokenizer = load_resources()
+model = load_resources()
 
-if model is not None and tokenizer is not None:
+if model is not None:
     # Text input
     news_text = st.text_area(
         "Enter the news article or headline:",
@@ -137,7 +63,7 @@ if model is not None and tokenizer is not None:
     if predict_button:
         if news_text.strip():
             with st.spinner("🤖 AI is analyzing the news..."):
-                prediction = predict_news(news_text, model, tokenizer)
+                prediction = predict_news(news_text, model)
                 confidence = prediction if prediction > 0.5 else 1 - prediction
                 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -167,5 +93,4 @@ if model is not None and tokenizer is not None:
         </div>
     """, unsafe_allow_html=True)
 else:
-    st.error("❌ Failed to load the model. Please ensure 'fake_news_model.h5' and 'tokenizer.pkl' are in the same directory.")
-
+    st.error("❌ Failed to load the model. Please ensure 'fake_vs_real_news_model.keras' is in the same directory.")
